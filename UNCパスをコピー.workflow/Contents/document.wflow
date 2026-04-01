@@ -100,74 +100,69 @@ mac_results=()
 win_results=()
 
 for p in "$@"; do
-  matched=0
+  best_mnt=""
+  best_spec=""
+
   while IFS= read -r line; do
     [ -z "$line" ] &amp;&amp; continue
     spec="$(echo "$line" | sed 's# on /.*##')"
-    mnt="$(echo "$line"  | sed 's#.* on ##' | sed 's# (smbfs.*##')"
+    mnt="$(echo "$line" | sed 's#.* on ##' | sed 's# (smbfs.*##')"
 
     case "$p" in
       "$mnt" | "$mnt"/*)
-        rel="${p#$mnt}"
-
-        # URLデコード（日本語パス対応）
-        rel_decoded="$(urldecode "$rel")"
-
-        # unc_body: ユーザー名(@以前)を除去しデコード
-        unc_body="${spec#//}"
-        unc_body="${unc_body##*@}"
-        unc_body="$(urldecode "$unc_body")"
-
-        # --- Mac用パス: smb://host/share/path ---
-        # spec から // を除いたホスト+共有部分を使用
-        mac_path="smb://${unc_body}${rel_decoded}"
-        mac_results+=("$mac_path")
-
-        # --- Win用パス: \\host\share\path ---
-        win_body="$(echo "$unc_body" | tr '/' '\\')"
-        win_rel="$(echo "$rel_decoded" | tr '/' '\\')"
-        win_path="\\\\${win_body}${win_rel}"
-        win_results+=("$win_path")
-
-        matched=1
-        break
+        # ネストされたマウントポイントがある場合、より具体的な（長い）パスを優先
+        if [ ${#mnt} -gt ${#best_mnt} ]; then
+          best_mnt="$mnt"
+          best_spec="$spec"
+        fi
         ;;
     esac
   done &lt; &lt;(echo "$mounts")
 
-  if [ "$matched" -eq 0 ]; then
+  if [ -n "$best_mnt" ]; then
+    rel="${p#$best_mnt}"
+
+    # unc_body: ユーザー名(@以前)を除去しデコード（mount specはURLエンコードされている場合がある）
+    unc_body="${best_spec#//}"
+    unc_body="${unc_body##*@}"
+    unc_body="$(urldecode "$unc_body")"
+
+    # --- Mac用パス: smb://host/share/path ---
+    # relはFinderから渡された実際のファイルシステムパスなのでurldecode不要
+    mac_path="smb://${unc_body}${rel}"
+    mac_results+=("$mac_path")
+
+    # --- Win用パス: \\host\share\path ---
+    win_body="$(echo "$unc_body" | tr '/' '\\')"
+    win_rel="$(echo "$rel" | tr '/' '\\')"
+    win_path="\\\\${win_body}${win_rel}"
+    win_results+=("$win_path")
+  else
     notify "SMBマウント上のファイルではありません" "変換失敗"
   fi
 done
 
 if [ "${#mac_results[@]}" -gt 0 ]; then
-  # Mac・Win両パスを改行区切りで結合してコピー
   if [ "${#mac_results[@]}" -eq 1 ]; then
     clip_text="Mac: ${mac_results[0]}
 Win: ${win_results[0]}"
     notify_msg="${mac_results[0]}
 ${win_results[0]}"
-  else
-    clip_text=""
-    notify_msg=""
-    for i in "${!mac_results[@]}"; do
-      clip_text+="Mac: ${mac_results[$i]}
-Win: ${win_results[$i]}"
-      if [ "$i" -lt $(( ${#mac_results[@]} - 1 )) ]; then
-        clip_text+="
-"
-      fi
-    done
-    notify_msg="${mac_results[0]}
-${win_results[0]} 他$((${#mac_results[@]} - 1))件"
-  fi
-
-  copy_to_clipboard "$clip_text"
-
-  if [ "${#mac_results[@]}" -eq 1 ]; then
+    copy_to_clipboard "$clip_text"
     notify "$notify_msg" "クリップボードにコピーしました"
   else
-    notify "$notify_msg" "クリップボードにコピーしました（$((${#mac_results[@]}))件）"
+    clip_text=""
+    for path in "${mac_results[@]}"; do
+      clip_text+="Mac: ${path}
+"
+    done
+    for path in "${win_results[@]}"; do
+      clip_text+="Win: ${path}
+"
+    done
+    clip_text="${clip_text%?}"
+    copy_to_clipboard "$clip_text"
+    notify "${#mac_results[@]}個のファイルパスをコピーしました。" "クリップボードにコピーしました"
   fi
 fi
 
