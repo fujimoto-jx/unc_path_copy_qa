@@ -58,6 +58,9 @@ fork clone 上で multi-model-pipeline（M1 Ollama 設計 / M4 実装・検証 /
   - 複数選択(2件): `Mac:`×2 → `Win:`×2、通知は「2個のファイルパスをコピーしました。」— 説明と一致
   - 混在(SMB 2件 + ローカル 1件): 失敗通知 1 回、出力は SMB の 2 件のみ — 説明と一致
 - `document.wflow` の SHA-256 が変更前後で一致（先頭 `f00b248c79ea6ee4`）、`git status` の変更は `README.md` / `CLAUDE.md` / `tasks/` のみ
+- レビュー指摘後の追加検証
+  - SMB 1 件 + ローカル 1 件: 失敗通知 1 回の後、単一形式（2 行）と両パスの通知 — 修正後の説明と一致
+  - SMB マウントなしで 2 件選択: 「SMBマウントが見つかりません」を 1 回通知して終了、クリップボード未更新 — 修正後の説明と一致
 - 未実施: 実機の Finder サービス経由・実 SMB マウントでの動作確認（ドキュメントのみの変更のため）
 
 # Codex Read-Only レビュー
@@ -65,7 +68,12 @@ fork clone 上で multi-model-pipeline（M1 Ollama 設計 / M4 実装・検証 /
 - 承認範囲: provider=Codex、repo=fork（origin）、対象=本 PR の head SHA、ファイル=`README.md` / `CLAUDE.md` の差分と、文脈として `document.wflow` から抽出した埋め込み bash スクリプト
 - 除外: `.env`・secrets・個人設定・memory・ホームの絶対パス・LAN アドレス・無関係な未追跡ファイル
 - 実行方法: 承認済み資料のみを置いた隔離 capsule で `codex exec --sandbox read-only`
-- 状態: 未実施（PR 作成後に実施し、結果を `tasks/reviews/` に保存）
+- 状態: 1 回目実施済み（対象 SHA `8c41bc8`、PR #2）。成果物: `tasks/reviews/20261114_195204_codex_multi_select_output_doc_alignment.md`
+- 判定: REQUEST_CHANGES
+  - Medium: 件数通知になる条件は選択件数ではなく変換できた件数（SMB 1 件 + ローカル 1 件では単一形式になる）
+  - Low: SMB マウントが 1 つも無い場合は項目ごとの失敗通知ではなく 1 回通知して終了
+- 対応: 2 件ともスタブ環境で再現を確認し、README / CLAUDE.md を修正（変換 0 件時はクリップボード未更新の旨も追記）
+- 再レビュー: 修正で head SHA が変わったため、同じ資料範囲での Codex 再送信には再承認が必要。状態 `REVIEW_PENDING_APPROVAL`
 
 # スコープ外の気付き（未修正）
 
@@ -76,5 +84,6 @@ fork clone 上で multi-model-pipeline（M1 Ollama 設計 / M4 実装・検証 /
 - [x] design（M1 Ollama）
 - [x] implementation（M4 Claude）
 - [x] verification（M4 Claude）
-- [ ] review（Codex Read-Only）
-- [ ] push / PR
+- [x] review 1 回目（Codex Read-Only、REQUEST_CHANGES → 指摘対応済み）
+- [ ] 修正後の再レビュー（REVIEW_PENDING_APPROVAL）
+- [x] push / PR（fork の PR #2、マージはユーザー判断待ち）
