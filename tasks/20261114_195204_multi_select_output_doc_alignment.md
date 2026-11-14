@@ -73,11 +73,17 @@ fork clone 上で multi-model-pipeline（M1 Ollama 設計 / M4 実装・検証 /
   - Medium: 件数通知になる条件は選択件数ではなく変換できた件数（SMB 1 件 + ローカル 1 件では単一形式になる）
   - Low: SMB マウントが 1 つも無い場合は項目ごとの失敗通知ではなく 1 回通知して終了
 - 対応: 2 件ともスタブ環境で再現を確認し、README / CLAUDE.md を修正（変換 0 件時はクリップボード未更新の旨も追記）
-- 再レビュー: 修正で head SHA が変わったため、同じ資料範囲での Codex 再送信には再承認が必要。状態 `REVIEW_PENDING_APPROVAL`
+- 再レビュー: ユーザーが再送信を承認（provider=Codex、PR #2、対象 SHA `36dee8c`、資料範囲は 1 回目と同一）。隔離 capsule・`--sandbox read-only` で実施
+  - 判定: APPROVE（指摘なし、前回 2 件は解消）
+  - 成果物: `tasks/reviews/20261114_203000_codex_rereview_multi_select_output_doc_alignment.md`
 
-# スコープ外の気付き（未修正）
+# 未解決の不整合（今回は未修正・別タスクで対応）
 
-- README / CLAUDE.md は編集対象キーを `ActionBashScript` と記載しているが、実ファイルのキーは `COMMAND_STRING`。今回の依頼は複数選択時の出力説明に限定のため未修正。
+- 内容: README「スクリプトの編集」と CLAUDE.md「コアロジック」「ワークフローの編集」は、埋め込み bash の格納キーを `ActionBashScript` と記載している
+- 実際: `UNCパスをコピー.workflow` / `URLデコード.workflow` の `document.wflow` に `ActionBashScript` は存在せず、スクリプトは `ActionParameters` 内の `COMMAND_STRING` キーの `<string>` に格納されている（`grep -c ActionBashScript` が両ファイルとも 0）
+- 影響: 記載どおりにキーを探しても見つからず、直接編集の手順が成立しない
+- 未修正の理由: 今回の依頼範囲は複数選択時の出力説明に限定
+- 対応案: 両ドキュメントのキー名を `COMMAND_STRING` に修正（ドキュメントのみ、workflow は変更不要）
 
 # ステータス
 
@@ -85,5 +91,5 @@ fork clone 上で multi-model-pipeline（M1 Ollama 設計 / M4 実装・検証 /
 - [x] implementation（M4 Claude）
 - [x] verification（M4 Claude）
 - [x] review 1 回目（Codex Read-Only、REQUEST_CHANGES → 指摘対応済み）
-- [ ] 修正後の再レビュー（REVIEW_PENDING_APPROVAL）
+- [x] 修正後の再レビュー（Codex Read-Only、APPROVE）
 - [x] push / PR（fork の PR #2、マージはユーザー判断待ち）
