@@ -15,6 +15,7 @@ status: PREPARING
 
 - upstream: https://github.com/Zappa0420/unc_path_copy_qa
 - test fork: https://github.com/fujimoto-jx/unc_path_copy_qa
+- preparation-plan PR: https://github.com/fujimoto-jx/unc_path_copy_qa/pull/1（Open、未merge）
 - 元のclone: ユーザー既存のclone（参照用。未追跡ファイルを含め変更しない）
 - fork clone: 元cloneと並ぶ専用の兄弟フォルダ（実パスはローカル環境のみで管理）
 - framework repository: `~/claude-config`
